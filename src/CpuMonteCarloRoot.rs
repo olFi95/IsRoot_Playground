@@ -1,5 +1,3 @@
-use std::ops::Div;
-use num::{FromPrimitive, Num, Signed};
 use crate::root::Root;
 
 
