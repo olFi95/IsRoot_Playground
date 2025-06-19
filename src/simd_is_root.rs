@@ -1,4 +1,4 @@
-use crate::root::Root;
+use crate::is_root::Root;
 use std::simd::num::SimdFloat;
 use std::simd::{LaneCount, Simd, SupportedLaneCount};
 
@@ -26,8 +26,8 @@ impl<const N: usize> Root for SimdIsRoot<N> where
 
 #[cfg(test)]
 mod test{
-    use crate::root::Root;
-    use crate::SimdIsRoot::SimdIsRoot;
+    use crate::is_root::Root;
+    use crate::simd_is_root::SimdIsRoot;
 
     #[test]
     fn test_is_root_simd(){
