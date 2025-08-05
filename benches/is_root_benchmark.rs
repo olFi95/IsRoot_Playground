@@ -1,18 +1,20 @@
-use criterion::{Criterion, criterion_group, criterion_main};
+use criterion::{Criterion, criterion_group, criterion_main, AsyncBencher, BenchmarkId};
+use criterion::async_executor::{AsyncExecutor, FuturesExecutor};
 use monte_carlo_root::is_root::Root;
 use monte_carlo_root::{cpu_is_root, wgpu_is_root};
 use monte_carlo_root::simd_is_root::SimdIsRoot;
 use std::hint::black_box;
+
 macro_rules! bench_lanes {
     ($group:ident, $sqrt:expr, $input:expr, $delta:expr, [ $( $lanes:literal ),* ]) => {
         $(
             $group.bench_function(&format!("SimdIsRoot::<{}>", $lanes), |b| {
-                b.iter(|| {
-                    let _ = SimdIsRoot::<$lanes>::is_root(
+                b.to_async(FuturesExecutor).iter( || async {
+                    SimdIsRoot::<$lanes>::is_root(
                         black_box($sqrt),
                         black_box($input),
                         black_box($delta),
-                    );
+                    ).await.unwrap();
                 });
             });
         )*
@@ -20,28 +22,28 @@ macro_rules! bench_lanes {
 }
 
 fn bench_is_root(c: &mut Criterion) {
-    let size = 1024 * 1024;
+    let size = 1024 * 1024 * 1024;
     let delta = 0.000001;
     let input: Vec<f32> = (0..size).map(|x| x as f32).collect();
     let sqrt: Vec<f32> = input.iter().map(|x| x.sqrt()).collect();
 
     c.bench_function("CpuIsRoot", |b| {
-        b.iter(|| {
-            let _ = cpu_is_root::CpuIsRoot::is_root(
+        b.to_async(FuturesExecutor).iter(|| async {
+            cpu_is_root::CpuIsRoot::is_root(
                 black_box(&sqrt),
                 black_box(&input),
                 black_box(delta),
-            );
+            ).await.unwrap();
         })
     });
 
     c.bench_function("WgpuIsRoot", |b| {
-        b.iter(|| {
-            let _ = wgpu_is_root::WgpuIsRoot::is_root(
+        b.to_async(FuturesExecutor).iter(|| async {
+            wgpu_is_root::WgpuIsRoot::is_root(
                 black_box(&sqrt),
                 black_box(&input),
                 black_box(delta),
-            );
+            ).await.unwrap();
         })
     });
 

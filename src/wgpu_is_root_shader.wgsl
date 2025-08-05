@@ -21,7 +21,6 @@ fn main(@builtin(global_invocation_id) GlobalInvocationID : vec3<u32>) {
     }
     let diff = abs((squareroots[i] * squareroots[i]) - inputs[i]);
     if (diff > delta) {
-        // Setze Ergebnis auf 0 (false), falls eine Abweichung zu groß ist
         atomicStore(&result, 0u);
     }
 }

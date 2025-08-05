@@ -1,7 +1,8 @@
 use crate::is_root::Root;
-use std::thread;
 use std::time::Duration;
+use futures::channel::oneshot;
 use wgpu::util::DeviceExt;
+use wgpu::wgt::PollType;
 
 pub struct WgpuIsRoot;
 
@@ -48,7 +49,6 @@ impl Root for WgpuIsRoot {
             contents: bytemuck::bytes_of(&initial_result),
             usage: wgpu::BufferUsages::STORAGE
                 | wgpu::BufferUsages::COPY_SRC
-                | wgpu::BufferUsages::COPY_DST,
         });
         let result_readback = device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("Result Readback Buffer"),
@@ -166,8 +166,7 @@ impl Root for WgpuIsRoot {
             });
             compute_pass.set_pipeline(&compute_pipeline);
             compute_pass.set_bind_group(0, &bind_group, &[]);
-            let workgroups = ((vector_length + 63) / 64).max(1); // oder workgroup_size(1), dann vector_length
-            compute_pass.dispatch_workgroups(workgroups, 1, 1);
+            compute_pass.dispatch_workgroups(vector_length, 1, 1);
         }
 
         encoder.copy_buffer_to_buffer(
@@ -177,17 +176,24 @@ impl Root for WgpuIsRoot {
             0,
             std::mem::size_of::<u32>() as u64,
         );
+        let command_buffer = encoder.finish();
+        queue.submit(Some(command_buffer));
 
-        queue.submit(Some(encoder.finish()));
+        let (sender, receiver) = futures_channel::oneshot::channel();
+        result_readback
+            .slice(..)
+            .map_async(wgpu::MapMode::Read, |result| {
+                let _ = sender.send(result);
+            });
+        device.poll(PollType::Wait).unwrap(); // TODO: poll in the background instead of blocking
+        receiver
+            .await
+            .expect("communication failed")
+            .expect("buffer reading failed");
+        let slice: &[u8] = &result_readback.slice(..).get_mapped_range();
+        let value = bytemuck::from_bytes::<u32>(&slice);
 
-        let buffer_slice = result_readback.slice(..);
-        // Start mapping
-        buffer_slice.map_async(wgpu::MapMode::Read, move |_| {});
-        thread::sleep(Duration::from_secs(1));
-        let view = buffer_slice.get_mapped_range();
-        println!("{view:?}");
-
-        None
+        Some(*value == 1)
     }
 }
 
@@ -196,20 +202,29 @@ mod test {
     use crate::is_root::Root;
     use crate::wgpu_is_root::WgpuIsRoot;
 
-    #[tokio::test]
-    async fn test_is_root_wgpu_happy_path() {
+    #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+    async fn test_is_root_wgpu_happy_path_1() {
         let squareroot = &vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0];
         let input = &vec![1.0, 4.0, 9.0, 16.0, 25.0, 36.0, 49.0, 64.0];
         let result = WgpuIsRoot::is_root(squareroot, input, 0.001).await;
         assert!(result.is_some());
         assert_eq!(result.unwrap(), true);
     }
-    #[tokio::test]
-    async fn test_is_root_simd_with_remainder() {
+    #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+    async fn test_is_root_wgpu_happy_path_2() {
         let squareroot = &vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0];
         let input = &vec![1.0, 4.0, 9.0, 16.0, 25.0, 36.0, 49.0];
         let result = WgpuIsRoot::is_root(squareroot, input, 0.001).await;
         assert!(result.is_some());
         assert_eq!(result.unwrap(), true);
     }
+    #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+    async fn test_is_root_one_error() {
+        let squareroot = &vec![1.0, 4.0, 3.0, 4.0, 5.0, 6.0, 7.0];
+        let input = &vec![1.0, 4.0, 10.0, 16.0, 25.0, 36.0, 49.0];
+        let result = WgpuIsRoot::is_root(squareroot, input, 0.001).await;
+        assert!(result.is_some());
+        assert_eq!(result.unwrap(), false);
+    }
 }
+
