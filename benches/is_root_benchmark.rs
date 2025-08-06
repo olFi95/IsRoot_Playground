@@ -22,7 +22,7 @@ macro_rules! bench_lanes {
 }
 
 fn bench_is_root(c: &mut Criterion) {
-    let size = 1024 * 1024 * 1024;
+    let size = 65535;
     let delta = 0.000001;
     let input: Vec<f32> = (0..size).map(|x| x as f32).collect();
     let sqrt: Vec<f32> = input.iter().map(|x| x.sqrt()).collect();
