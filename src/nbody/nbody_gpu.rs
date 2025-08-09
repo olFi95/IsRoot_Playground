@@ -1,9 +1,9 @@
-use crate::is_root::Root;
-use futures::channel::oneshot;
+use crate::nbody::nbody::NBody;
+use rand::Rng;
 use wgpu::util::DeviceExt;
 use wgpu::wgt::PollType;
 
-pub struct NBody {
+pub struct NBodyGPU {
     vector_length: u32,
     point_locations: wgpu::Buffer,
     point_speeds: wgpu::Buffer,
@@ -17,8 +17,9 @@ pub struct NBody {
     pipeline_layout: wgpu::PipelineLayout,
     compute_pipeline: wgpu::ComputePipeline,
 }
-impl NBody {
-    pub async fn new(start_locations: Vec<[f32; 2]>) -> Self {
+
+impl NBodyGPU {
+    pub async fn new(start_locations: &Vec<[f32; 2]>) -> Self {
         let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor::from_env_or_default());
         let adapter = instance
             .request_adapter(&wgpu::RequestAdapterOptions {
@@ -34,7 +35,7 @@ impl NBody {
             .unwrap();
         let point_locations = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("Point Locations"),
-            contents: bytemuck::cast_slice(start_locations.as_slice()),
+            contents: bytemuck::cast_slice(start_locations.clone().as_slice()),
             usage: wgpu::BufferUsages::COPY_SRC | wgpu::BufferUsages::STORAGE,
         });
         let point_speeds = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
@@ -142,7 +143,7 @@ impl NBody {
 
 
 
-        NBody {
+        NBodyGPU {
             vector_length,
             point_locations,
             point_speeds,
@@ -157,12 +158,16 @@ impl NBody {
             compute_pipeline,
         }
     }
-    pub async fn nbody_step(&mut self)  {
+
+}
+
+impl NBody for NBodyGPU {
+    async fn step(&mut self, steps: usize)  {
         let mut encoder = self.device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
             label: Some("Compute Encoder"),
         });
 
-        {
+        for _ in 0..steps {
             let mut compute_pass = encoder.begin_compute_pass(&wgpu::ComputePassDescriptor {
                 label: Some("is_root pass"),
                 timestamp_writes: None,
@@ -175,7 +180,7 @@ impl NBody {
         self.queue.submit(Some(command_buffer));
 
     }
-    pub async fn get_point_locations(&mut self) -> Vec<[f32; 2]> {
+    async fn get_point_locations(&mut self) -> Vec<[f32; 2]> {
         let mut encoder = self.device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
             label: Some("Compute Encoder"),
         });
@@ -214,17 +219,40 @@ impl NBody {
 }
 #[cfg(test)]
 mod test {
-    use crate::nbody::NBody;
+    use crate::nbody::nbody::{generate_test_data, NBody};
+    use crate::nbody::nbody_gpu::NBodyGPU;
+    use std::time::Instant;
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
-    async fn nbody_1() {
+    async fn nbody_test_queue_depth() {
         let start_locations = &vec![[0.0, 1.0], [0.0, -1.0]];
-        let mut nbody = NBody::new(start_locations.to_vec()).await;
-        for i in 0..1000 {
-            nbody.nbody_step().await;
-            if i%10==0 {
-                println!("{i}: {:?}", nbody.get_point_locations().await);
+        let mut nbody = NBodyGPU::new(&start_locations.to_vec()).await;
+        let mut step_size = 1;
+        let max_step_size = 10000;
+        while step_size <= max_step_size {
+            let start = Instant::now();
+            for _ in (0..10000).step_by(step_size)  {
+                nbody.step(step_size).await;
             }
+            let duration = Instant::now()-start;
+            println!("For step_size {step_size} it took {duration:?}");
+            step_size *= 10;
         }
     }
+    #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+    async fn nbody_test_large_quantity_of_points() {
+        let start_locations = &generate_test_data(65535/2);
+        let mut nbody = NBodyGPU::new(&start_locations.to_vec()).await;
+        let step_size = 5;
+        let start = Instant::now();
+        for _ in (0..1000).step_by(step_size)  {
+            nbody.step(step_size).await;
+            // println!("{i}: {:?}", nbody.get_point_locations().await);
+
+        }
+        let duration = Instant::now()-start;
+        println!("Took {duration:?}");
+
+    }
 }
+

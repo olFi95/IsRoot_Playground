@@ -1,6 +1,6 @@
-use crate::is_root::Root;
 use std::simd::num::SimdFloat;
 use std::simd::{LaneCount, Simd, SupportedLaneCount};
+use crate::is_root::is_root::Root;
 
 pub struct SimdIsRoot<const N: usize>;
 impl<const N: usize> Root for SimdIsRoot<N>
@@ -37,8 +37,8 @@ where
 
 #[cfg(test)]
 mod test {
-    use crate::is_root::Root;
-    use crate::simd_is_root::SimdIsRoot;
+    use crate::is_root::is_root::Root;
+    use crate::is_root::simd_is_root::SimdIsRoot;
 
     #[tokio::test]
     async fn test_is_root_simd() {

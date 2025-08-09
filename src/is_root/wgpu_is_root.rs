@@ -1,8 +1,6 @@
-use crate::is_root::Root;
-use std::time::Duration;
-use futures::channel::oneshot;
 use wgpu::util::DeviceExt;
 use wgpu::wgt::PollType;
+use crate::is_root::is_root::Root;
 
 pub struct WgpuIsRoot;
 
@@ -199,8 +197,8 @@ impl Root for WgpuIsRoot {
 
 #[cfg(test)]
 mod test {
-    use crate::is_root::Root;
-    use crate::wgpu_is_root::WgpuIsRoot;
+    use crate::is_root::is_root::Root;
+    use crate::is_root::wgpu_is_root::WgpuIsRoot;
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
     async fn test_is_root_wgpu_happy_path_1() {

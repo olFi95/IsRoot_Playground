@@ -1,9 +1,9 @@
-use criterion::{Criterion, criterion_group, criterion_main, AsyncBencher, BenchmarkId};
-use criterion::async_executor::{AsyncExecutor, FuturesExecutor};
-use monte_carlo_root::is_root::Root;
-use monte_carlo_root::{cpu_is_root, wgpu_is_root};
-use monte_carlo_root::simd_is_root::SimdIsRoot;
+use criterion::async_executor::FuturesExecutor;
+use criterion::{criterion_group, criterion_main, Criterion};
 use std::hint::black_box;
+use monte_carlo_root::is_root::{cpu_is_root, wgpu_is_root, simd_is_root};
+use monte_carlo_root::is_root::simd_is_root::SimdIsRoot;
+use monte_carlo_root::is_root::is_root::Root;
 
 macro_rules! bench_lanes {
     ($group:ident, $sqrt:expr, $input:expr, $delta:expr, [ $( $lanes:literal ),* ]) => {

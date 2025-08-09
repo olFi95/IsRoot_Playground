@@ -1,4 +1,4 @@
-use crate::is_root::Root;
+use crate::is_root::is_root::Root;
 
 pub struct CpuIsRoot;
 
@@ -20,8 +20,8 @@ impl Root for CpuIsRoot {
 
 #[cfg(test)]
 mod test {
-    use crate::cpu_is_root::CpuIsRoot;
-    use crate::is_root::Root;
+    use crate::is_root::cpu_is_root::CpuIsRoot;
+    use crate::is_root::is_root::Root;
 
     #[tokio::test]
     async fn test_is_root_i32_positive() {
