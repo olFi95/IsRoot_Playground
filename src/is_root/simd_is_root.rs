@@ -1,6 +1,6 @@
+use crate::is_root::is_root::Root;
 use std::simd::num::SimdFloat;
 use std::simd::{LaneCount, Simd, SupportedLaneCount};
-use crate::is_root::is_root::Root;
 
 pub struct SimdIsRoot<const N: usize>;
 impl<const N: usize> Root for SimdIsRoot<N>

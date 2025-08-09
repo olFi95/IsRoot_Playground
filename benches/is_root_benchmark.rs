@@ -1,9 +1,9 @@
 use criterion::async_executor::FuturesExecutor;
-use criterion::{criterion_group, criterion_main, Criterion};
-use std::hint::black_box;
-use monte_carlo_root::is_root::{cpu_is_root, wgpu_is_root, simd_is_root};
-use monte_carlo_root::is_root::simd_is_root::SimdIsRoot;
+use criterion::{Criterion, criterion_group, criterion_main};
 use monte_carlo_root::is_root::is_root::Root;
+use monte_carlo_root::is_root::simd_is_root::SimdIsRoot;
+use monte_carlo_root::is_root::{cpu_is_root, simd_is_root, wgpu_is_root};
+use std::hint::black_box;
 
 macro_rules! bench_lanes {
     ($group:ident, $sqrt:expr, $input:expr, $delta:expr, [ $( $lanes:literal ),* ]) => {
@@ -29,11 +29,9 @@ fn bench_is_root(c: &mut Criterion) {
 
     c.bench_function("CpuIsRoot", |b| {
         b.to_async(FuturesExecutor).iter(|| async {
-            cpu_is_root::CpuIsRoot::is_root(
-                black_box(&sqrt),
-                black_box(&input),
-                black_box(delta),
-            ).await.unwrap();
+            cpu_is_root::CpuIsRoot::is_root(black_box(&sqrt), black_box(&input), black_box(delta))
+                .await
+                .unwrap();
         })
     });
 
@@ -43,7 +41,9 @@ fn bench_is_root(c: &mut Criterion) {
                 black_box(&sqrt),
                 black_box(&input),
                 black_box(delta),
-            ).await.unwrap();
+            )
+            .await
+            .unwrap();
         })
     });
 

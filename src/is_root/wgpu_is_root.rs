@@ -1,6 +1,6 @@
+use crate::is_root::is_root::Root;
 use wgpu::util::DeviceExt;
 use wgpu::wgt::PollType;
-use crate::is_root::is_root::Root;
 
 pub struct WgpuIsRoot;
 
@@ -45,8 +45,7 @@ impl Root for WgpuIsRoot {
         let result_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("Result Buffer"),
             contents: bytemuck::bytes_of(&initial_result),
-            usage: wgpu::BufferUsages::STORAGE
-                | wgpu::BufferUsages::COPY_SRC
+            usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_SRC,
         });
         let result_readback = device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("Result Readback Buffer"),
@@ -225,4 +224,3 @@ mod test {
         assert_eq!(result.unwrap(), false);
     }
 }
-

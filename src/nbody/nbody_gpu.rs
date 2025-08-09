@@ -55,7 +55,6 @@ impl NBodyGPU {
             usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
         });
 
-
         let bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
             label: Some("Bind Group Layout"),
             entries: &[
@@ -141,8 +140,6 @@ impl NBodyGPU {
             cache: None,
         });
 
-
-
         NBodyGPU {
             vector_length,
             point_locations,
@@ -158,14 +155,15 @@ impl NBodyGPU {
             compute_pipeline,
         }
     }
-
 }
 
 impl NBody for NBodyGPU {
-    async fn step(&mut self, steps: usize)  {
-        let mut encoder = self.device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
-            label: Some("Compute Encoder"),
-        });
+    async fn step(&mut self, steps: usize) {
+        let mut encoder = self
+            .device
+            .create_command_encoder(&wgpu::CommandEncoderDescriptor {
+                label: Some("Compute Encoder"),
+            });
 
         for _ in 0..steps {
             let mut compute_pass = encoder.begin_compute_pass(&wgpu::ComputePassDescriptor {
@@ -178,15 +176,16 @@ impl NBody for NBodyGPU {
         }
         let command_buffer = encoder.finish();
         self.queue.submit(Some(command_buffer));
-
     }
     async fn get_point_locations(&mut self) -> Vec<[f32; 2]> {
-        let mut encoder = self.device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
-            label: Some("Compute Encoder"),
-        });
+        let mut encoder = self
+            .device
+            .create_command_encoder(&wgpu::CommandEncoderDescriptor {
+                label: Some("Compute Encoder"),
+            });
         let point_location_readback = self.device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("Result Readback Buffer"),
-            size: (std::mem::size_of::<[f32;2]>() * self.vector_length as usize) as u64,
+            size: (std::mem::size_of::<[f32; 2]>() * self.vector_length as usize) as u64,
             usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::MAP_READ,
             mapped_at_creation: false,
         });
@@ -196,7 +195,7 @@ impl NBody for NBodyGPU {
             0,
             &point_location_readback,
             0,
-            (std::mem::size_of::<[f32;2]>() * self.vector_length as usize) as u64,
+            (std::mem::size_of::<[f32; 2]>() * self.vector_length as usize) as u64,
         );
         let command_buffer = encoder.finish();
         self.queue.submit(Some(command_buffer));
@@ -219,7 +218,7 @@ impl NBody for NBodyGPU {
 }
 #[cfg(test)]
 mod test {
-    use crate::nbody::nbody::{generate_test_data, NBody};
+    use crate::nbody::nbody::NBody;
     use crate::nbody::nbody_gpu::NBodyGPU;
     use std::time::Instant;
 
@@ -231,13 +230,12 @@ mod test {
         let max_step_size = 10000;
         while step_size <= max_step_size {
             let start = Instant::now();
-            for _ in (0..10000).step_by(step_size)  {
+            for _ in (0..10000).step_by(step_size) {
                 nbody.step(step_size).await;
             }
-            let duration = Instant::now()-start;
+            let duration = Instant::now() - start;
             println!("For step_size {step_size} it took {duration:?}");
             step_size *= 10;
         }
     }
 }
-
