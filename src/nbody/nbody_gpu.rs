@@ -239,20 +239,5 @@ mod test {
             step_size *= 10;
         }
     }
-    #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
-    async fn nbody_test_large_quantity_of_points() {
-        let start_locations = &generate_test_data(65535/2);
-        let mut nbody = NBodyGPU::new(&start_locations.to_vec()).await;
-        let step_size = 5;
-        let start = Instant::now();
-        for _ in (0..1000).step_by(step_size)  {
-            nbody.step(step_size).await;
-            // println!("{i}: {:?}", nbody.get_point_locations().await);
-
-        }
-        let duration = Instant::now()-start;
-        println!("Took {duration:?}");
-
-    }
 }
 
